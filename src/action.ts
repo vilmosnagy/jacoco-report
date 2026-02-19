@@ -68,18 +68,18 @@ export async function action(): Promise<void> {
     const client = github.getOctokit(token)
 
     const sha = github.context.sha
-    let base: string = sha
-    let head: string = sha
+    let base: string | undefined = undefined
+    let head: string | undefined = core.getInput('head-sha') || undefined
     switch (event) {
       case 'pull_request':
       case 'pull_request_target':
-        base = github.context.payload.pull_request?.base.sha
-        head = github.context.payload.pull_request?.head.sha
+        base = base ?? github.context.payload.pull_request?.base.sha
+        head = head ?? github.context.payload.pull_request?.head.sha
         prNumber = prNumber ?? github.context.payload.pull_request?.number
         break
       case 'push':
-        base = github.context.payload.before
-        head = github.context.payload.after
+        base = base ?? github.context.payload.before
+        head = head ?? github.context.payload.after
         prNumber =
           prNumber ?? (await getPrNumberAssociatedWithCommit(client, sha))
         break
@@ -92,8 +92,8 @@ export async function action(): Promise<void> {
         const pullRequests =
           github.context.payload?.workflow_run?.pull_requests ?? []
         if (pullRequests.length !== 0) {
-          base = pullRequests[0]?.base?.sha
-          head = pullRequests[0]?.head?.sha
+          base = base ?? pullRequests[0]?.base?.sha
+          head = head ?? pullRequests[0]?.head?.sha
           prNumber = prNumber ?? pullRequests[0]?.number
         } else {
           prNumber =
@@ -106,6 +106,9 @@ export async function action(): Promise<void> {
         )
         return
     }
+
+    base = base ?? sha
+    head = head ?? sha
 
     core.info(`base sha: ${base}`)
     core.info(`head sha: ${head}`)
