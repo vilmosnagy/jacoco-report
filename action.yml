@@ -1,4 +1,4 @@
-name: 'JaCoCo Report'
+name: 'JaCoCo Report by Vilmos'
 description: 'Publishes the JaCoCo report as a comment in the Pull Request'
 inputs:
   paths:
@@ -53,6 +53,9 @@ inputs:
     description: 'Run the action in debug mode and get debug logs printed in console'
     required: false
     default: 'false'
+  head-sha:
+    description: 'The head SHA of the branch to compare against. If not provided, the action will try to get it from the environment.'
+    required: false
 
 outputs:
   coverage-overall:

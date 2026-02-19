@@ -1,5 +1,10 @@
 # jacoco-report
 
+### Changes in this fork
+
+This fork introduces several improvements and new features:
+- **Custom `head-sha`**: Added a new `head-sha` input to allow manually specifying the head SHA for coverage comparison.
+
 [![Tests](https://github.com/Madrapps/jacoco-report/actions/workflows/check.yml/badge.svg)](https://github.com/Madrapps/jacoco-report/actions/workflows/check.yml)
 
 A Github action that publishes the JaCoCo report as a comment in the Pull Request with customizable pass percentage for
@@ -32,6 +37,7 @@ for [Creating a workflow file](https://help.github.com/en/articles/configuring-a
 - `fail-emoji` - [*optional* {default: :x:}] Emoji to use for fail status shown when 'coverage < min coverage' (should be a Github supported emoji).
 - `continue-on-error` - [*optional* {default: true}] If true, then do not fail the action on error, but log a warning
 - `debug-mode` - [*optional* {default: false}] If true, run the action in debug mode and get debug logs printed in console
+- `head-sha` - [*optional*] The head SHA of the branch to compare against. If not provided, the action will try to get it from the environment.
 
 ### Outputs
 
