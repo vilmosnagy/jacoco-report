@@ -5,7 +5,7 @@ import * as fs from 'fs'
 import {parseBooleans} from 'xml2js/lib/processors'
 import * as glob from '@actions/glob'
 import {getProjectCoverage} from './process'
-import {getPRComment, getTitle} from './render'
+import {FooterMetadata, getPRComment, getTitle} from './render'
 import {debug, getChangedLines, parseToReport} from './util'
 import {Project} from './models/project'
 import {ChangedFile} from './models/github'
@@ -47,6 +47,9 @@ export async function action(): Promise<void> {
 
     continueOnError = parseBooleans(core.getInput('continue-on-error'))
     const debugMode = parseBooleans(core.getInput('debug-mode'))
+    const includeMetadataInFooter = parseBooleans(
+      core.getInput('include-metadata-in-footer')
+    )
 
     const event = github.context.eventName
     core.info(`Event is ${event}`)
@@ -111,6 +114,12 @@ export async function action(): Promise<void> {
     base = base ?? sha
     head = head ?? sha
 
+    const footer = buildFooterMetadata(
+      includeMetadataInFooter,
+      event,
+      github.context
+    )
+
     core.info(`base sha: ${base}`)
     core.info(`head sha: ${head}`)
     if (debugMode) core.info(`context: ${debug(github.context)}`)
@@ -149,7 +158,8 @@ export async function action(): Promise<void> {
           changed: minCoverageChangedFiles,
         },
         title,
-        emoji
+        emoji,
+        footer
       )
       switch (commentType) {
         case 'pr_comment':
@@ -291,6 +301,41 @@ const validCommentTypes = ['pr_comment', 'summary', 'both'] as const
 
 const isValidCommentType = (value: any): value is Options => {
   return validCommentTypes.includes(value)
+}
+
+function buildFooterMetadata(
+  enabled: boolean,
+  event: string,
+  ctx: typeof github.context
+): FooterMetadata | undefined {
+  if (!enabled) return undefined
+
+  const {owner, repo} = ctx.repo
+  const commentingRunId = ctx.runId
+  const commentingRunUrl = `https://github.com/${owner}/${repo}/actions/runs/${commentingRunId}`
+  const commentingRunName = ctx.workflow
+
+  const now = new Date()
+  const timestamp = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')} ${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')} UTC`
+
+  if (event === 'workflow_run' && ctx.payload.workflow_run) {
+    const wr = ctx.payload.workflow_run
+    return {
+      sourceRun: {name: wr.name, id: wr.id, url: wr.html_url},
+      commentingRun: {
+        name: commentingRunName,
+        id: commentingRunId,
+        url: commentingRunUrl,
+      },
+      timestamp,
+    }
+  }
+
+  return {
+    sourceRun: {name: commentingRunName, id: commentingRunId, url: commentingRunUrl},
+    commentingRun: null,
+    timestamp,
+  }
 }
 
 async function getPrNumberAssociatedWithCommit(
