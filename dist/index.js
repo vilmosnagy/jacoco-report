@@ -79,6 +79,7 @@ async function action() {
         const failEmoji = core.getInput('fail-emoji');
         continueOnError = (0, processors_1.parseBooleans)(core.getInput('continue-on-error'));
         const debugMode = (0, processors_1.parseBooleans)(core.getInput('debug-mode'));
+        const includeMetadataInFooter = (0, processors_1.parseBooleans)(core.getInput('include-metadata-in-footer'));
         const event = github.context.eventName;
         core.info(`Event is ${event}`);
         if (debugMode) {
@@ -133,6 +134,7 @@ async function action() {
         }
         base = base ?? sha;
         head = head ?? sha;
+        const footer = buildFooterMetadata(includeMetadataInFooter, event, github.context);
         core.info(`base sha: ${base}`);
         core.info(`head sha: ${head}`);
         if (debugMode)
@@ -163,7 +165,7 @@ async function action() {
             const bodyFormatted = (0, render_1.getPRComment)(project, {
                 overall: minCoverageOverall,
                 changed: minCoverageChangedFiles,
-            }, title, emoji);
+            }, title, emoji, footer);
             switch (commentType) {
                 case 'pr_comment':
                     await addComment(prNumber, updateComment, titleFormatted, bodyFormatted, client, debugMode);
@@ -269,6 +271,33 @@ const validCommentTypes = ['pr_comment', 'summary', 'both'];
 const isValidCommentType = (value) => {
     return validCommentTypes.includes(value);
 };
+function buildFooterMetadata(enabled, event, ctx) {
+    if (!enabled)
+        return undefined;
+    const { owner, repo } = ctx.repo;
+    const commentingRunId = ctx.runId;
+    const commentingRunUrl = `https://github.com/${owner}/${repo}/actions/runs/${commentingRunId}`;
+    const commentingRunName = ctx.workflow;
+    const now = new Date();
+    const timestamp = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')} ${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')} UTC`;
+    if (event === 'workflow_run' && ctx.payload.workflow_run) {
+        const wr = ctx.payload.workflow_run;
+        return {
+            sourceRun: { name: wr.name, id: wr.id, url: wr.html_url },
+            commentingRun: {
+                name: commentingRunName,
+                id: commentingRunId,
+                url: commentingRunUrl,
+            },
+            timestamp,
+        };
+    }
+    return {
+        sourceRun: { name: commentingRunName, id: commentingRunId, url: commentingRunUrl },
+        commentingRun: null,
+        timestamp,
+    };
+}
 async function getPrNumberAssociatedWithCommit(client, commitSha) {
     const response = await client.rest.repos.listPullRequestsAssociatedWithCommit({
         commit_sha: commitSha,
@@ -518,10 +547,11 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getPRComment = getPRComment;
 exports.getTitle = getTitle;
 const coverageAbsent = '> There is no coverage information present for the Files changed';
-function getPRComment(project, minCoverage, title, emoji) {
+function getPRComment(project, minCoverage, title, emoji, footer) {
     const heading = getTitle(title);
+    const footerSection = footer ? getFooter(footer) : '';
     if (!project.overall) {
-        return `${heading + coverageAbsent}`;
+        return `${heading + coverageAbsent}${footerSection}`;
     }
     const overallTable = getOverallTable(project.overall, project.changed, minCoverage, emoji);
     const moduleTable = getModuleTable(project.modules, minCoverage, emoji);
@@ -531,7 +561,20 @@ function getPRComment(project, minCoverage, title, emoji) {
         : project.isMultiModule
             ? `${moduleTable}\n\n${filesTable}`
             : filesTable;
-    return `${heading + overallTable}\n\n${tables}`;
+    return `${heading + overallTable}\n\n${tables}${footerSection}`;
+}
+function getFooter(metadata) {
+    const { sourceRun, commentingRun, timestamp } = metadata;
+    const sourceLink = `[${sourceRun.name} #${sourceRun.id}](${sourceRun.url})`;
+    let text;
+    if (commentingRun === null) {
+        text = `Coverage data and comment from ${sourceLink}`;
+    }
+    else {
+        const commentingLink = `[${commentingRun.name} #${commentingRun.id}](${commentingRun.url})`;
+        text = `Coverage data from ${sourceLink} • Comment by ${commentingLink}`;
+    }
+    return `\n\n<sub>${text} • ${timestamp}</sub>`;
 }
 function getModuleTable(modules, minCoverage, emoji) {
     const tableHeader = '|Module|Coverage||';

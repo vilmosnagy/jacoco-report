@@ -56,6 +56,10 @@ inputs:
   head-sha:
     description: 'The head SHA of the branch to compare against. If not provided, the action will try to get it from the environment.'
     required: false
+  include-metadata-in-footer:
+    description: 'Include a metadata footer in the PR comment showing the source run, commenting run, and timestamp.'
+    required: false
+    default: 'true'
 
 outputs:
   coverage-overall:

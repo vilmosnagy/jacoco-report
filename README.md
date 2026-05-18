@@ -5,6 +5,7 @@
 This fork introduces several improvements and new features:
 - **Custom `head-sha`**: Added a new `head-sha` input to allow manually specifying the head SHA for coverage comparison.
 - **Node 24 migration**: Migrated the action runtime and toolchain to Node.js 24 with the help of [Claude Code](https://claude.ai/code).
+- **Metadata footer** ([#2](https://github.com/vilmosnagy/jacoco-report/issues/2)): PR comments now include a small footer showing which CI run provided the coverage data, which run posted the comment, and when it was last updated. Enabled by default; opt out with `include-metadata-in-footer: false`.
 
 [![Tests](https://github.com/Madrapps/jacoco-report/actions/workflows/check.yml/badge.svg)](https://github.com/Madrapps/jacoco-report/actions/workflows/check.yml)
 
@@ -39,6 +40,7 @@ for [Creating a workflow file](https://help.github.com/en/articles/configuring-a
 - `continue-on-error` - [*optional* {default: true}] If true, then do not fail the action on error, but log a warning
 - `debug-mode` - [*optional* {default: false}] If true, run the action in debug mode and get debug logs printed in console
 - `head-sha` - [*optional*] The head SHA of the branch to compare against. If not provided, the action will try to get it from the environment.
+- `include-metadata-in-footer` - [*optional* {default: true}] If true, appends a small footer to the PR comment showing the source CI run, the commenting run, and the timestamp of the last update. Set to `false` to opt out.
 
 ### Outputs
 
@@ -71,7 +73,7 @@ jobs:
 
       - name: Add coverage to PR
         id: jacoco
-        uses: madrapps/jacoco-report@v1.7.2
+        uses: vilmosnagy/jacoco-report@1.8.0
         with:
           paths: |
             ${{ github.workspace }}/**/build/reports/jacoco/prodNormalDebugCoverage/prodNormalDebugCoverage.xml,
@@ -131,7 +133,7 @@ refer [jacoco-android-playground](https://github.com/thsaravana/jacoco-android-p
    ```yaml
    - name: Jacoco Report to PR
      id: jacoco
-     uses: madrapps/jacoco-report@v1.7.2
+     uses: vilmosnagy/jacoco-report@1.8.0
      with:
        paths: ${{ github.workspace }}/build/reports/jacoco/testCoverage/testCoverage.xml
        token: ${{ secrets.GITHUB_TOKEN }}
@@ -152,7 +154,7 @@ refer [jacoco-android-playground](https://github.com/thsaravana/jacoco-android-p
    ```yaml
    - name: Jacoco Report to PR
      id: jacoco
-     uses: madrapps/jacoco-report@v1.7.2
+     uses: vilmosnagy/jacoco-report@1.8.0
      with:
        paths: |
          ${{ github.workspace }}/**/build/reports/jacoco/**/prodNormalDebugCoverage.xml,
@@ -172,7 +174,7 @@ refer [jacoco-android-playground](https://github.com/thsaravana/jacoco-android-p
    ```yaml
    - name: Jacoco Report to PR
      id: jacoco
-     uses: madrapps/jacoco-report@v1.7.2
+     uses: vilmosnagy/jacoco-report@1.8.0
      with:
        paths: ${{ github.workspace }}/build/reports/jacoco/testCoverage/testCoverage.xml
        token: ${{ secrets.GITHUB_TOKEN }}

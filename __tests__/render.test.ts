@@ -1,4 +1,5 @@
 import * as render from '../src/render'
+import {FooterMetadata} from '../src/render'
 import {PROJECT} from './mocks.test'
 import {Project} from '../src/models/project'
 
@@ -234,6 +235,83 @@ describe('Render', function () {
 |[StringOp.java](https://github.com/thsaravana/jacoco-playground/blob/14a554976c0e5909d8e69bc8cce72958c49a7dc5/src/main/java/com/madrapps/jacoco/operation/StringOp.java)|100%|:green_apple:|
 |[Math.kt](https://github.com/thsaravana/jacoco-playground/blob/14a554976c0e5909d8e69bc8cce72958c49a7dc5/src/main/kotlin/com/madrapps/jacoco/Math.kt)|42% **\`-42%\`**|:green_apple:|
 |[Utility.java](https://github.com/thsaravana/jacoco-playground/blob/14a554976c0e5909d8e69bc8cce72958c49a7dc5/src/main/java/com/madrapps/jacoco/Utility.java)|18.03%|:green_apple:|`
+        )
+      })
+    })
+
+    describe('footer metadata', function () {
+      const project = PROJECT.SINGLE_MODULE
+      const noModulesProject: Project = {
+        ...PROJECT.SINGLE_MODULE,
+        modules: [],
+        'coverage-changed-files': 100,
+        changed: null,
+      }
+      const minCoverage = {overall: 30, changed: 50}
+      const sameRunFooter: FooterMetadata = {
+        sourceRun: {
+          name: 'CI',
+          id: 42,
+          url: 'https://github.com/owner/repo/actions/runs/42',
+        },
+        commentingRun: null,
+        timestamp: '2026-05-18 14:32 UTC',
+      }
+      const differentRunFooter: FooterMetadata = {
+        sourceRun: {
+          name: 'Test',
+          id: 10,
+          url: 'https://github.com/owner/repo/actions/runs/10',
+        },
+        commentingRun: {
+          name: 'Report',
+          id: 42,
+          url: 'https://github.com/owner/repo/actions/runs/42',
+        },
+        timestamp: '2026-05-18 14:32 UTC',
+      }
+
+      it('no footer when footer is undefined', function () {
+        const comment = render.getPRComment(project, minCoverage, '', emoji)
+        expect(comment).not.toContain('<sub>')
+      })
+
+      it('same-run footer appended', function () {
+        const comment = render.getPRComment(
+          project,
+          minCoverage,
+          '',
+          emoji,
+          sameRunFooter
+        )
+        expect(comment).toContain(
+          '\n\n<sub>Coverage data and comment from [CI #42](https://github.com/owner/repo/actions/runs/42) • 2026-05-18 14:32 UTC</sub>'
+        )
+      })
+
+      it('different-run footer appended', function () {
+        const comment = render.getPRComment(
+          project,
+          minCoverage,
+          '',
+          emoji,
+          differentRunFooter
+        )
+        expect(comment).toContain(
+          '\n\n<sub>Coverage data from [Test #10](https://github.com/owner/repo/actions/runs/10) • Comment by [Report #42](https://github.com/owner/repo/actions/runs/42) • 2026-05-18 14:32 UTC</sub>'
+        )
+      })
+
+      it('footer appended when coverage data is absent', function () {
+        const comment = render.getPRComment(
+          noModulesProject,
+          minCoverage,
+          '',
+          emoji,
+          sameRunFooter
+        )
+        expect(comment).toContain(
+          '\n\n<sub>Coverage data and comment from [CI #42](https://github.com/owner/repo/actions/runs/42) • 2026-05-18 14:32 UTC</sub>'
         )
       })
     })

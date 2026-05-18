@@ -3,15 +3,23 @@ import {Coverage, Emoji, MinCoverage, Module, Project} from './models/project'
 const coverageAbsent =
   '> There is no coverage information present for the Files changed'
 
+export interface FooterMetadata {
+  sourceRun: {name: string; id: number; url: string}
+  commentingRun: {name: string; id: number; url: string} | null
+  timestamp: string
+}
+
 export function getPRComment(
   project: Project,
   minCoverage: MinCoverage,
   title: string,
-  emoji: Emoji
+  emoji: Emoji,
+  footer?: FooterMetadata
 ): string {
   const heading = getTitle(title)
+  const footerSection = footer ? getFooter(footer) : ''
   if (!project.overall) {
-    return `${heading + coverageAbsent}`
+    return `${heading + coverageAbsent}${footerSection}`
   }
   const overallTable = getOverallTable(
     project.overall,
@@ -29,7 +37,20 @@ export function getPRComment(
         ? `${moduleTable}\n\n${filesTable}`
         : filesTable
 
-  return `${heading + overallTable}\n\n${tables}`
+  return `${heading + overallTable}\n\n${tables}${footerSection}`
+}
+
+function getFooter(metadata: FooterMetadata): string {
+  const {sourceRun, commentingRun, timestamp} = metadata
+  const sourceLink = `[${sourceRun.name} #${sourceRun.id}](${sourceRun.url})`
+  let text: string
+  if (commentingRun === null) {
+    text = `Coverage data and comment from ${sourceLink}`
+  } else {
+    const commentingLink = `[${commentingRun.name} #${commentingRun.id}](${commentingRun.url})`
+    text = `Coverage data from ${sourceLink} • Comment by ${commentingLink}`
+  }
+  return `\n\n<sub>${text} • ${timestamp}</sub>`
 }
 
 function getModuleTable(
